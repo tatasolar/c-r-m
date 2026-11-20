@@ -1,0 +1,168 @@
+openapi: 3.1.0
+info:
+  title: TataBillForge API
+  version: 1.0.0
+  description: API index, help, and health endpoints for the partner backend.
+servers:
+  - url: https://partner.tatapower.solar
+    description: Production API
+paths:
+  /api:
+    get:
+      operationId: getApiIndex
+      summary: Get the API service index
+      responses:
+        "200":
+          description: Service metadata and links to API help, health, and this specification.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiIndex"
+  /api/help:
+    get:
+      operationId: getApiHelp
+      summary: Get API usage guidance and endpoint catalog
+      responses:
+        "200":
+          description: API base URL, session authentication guidance, and endpoint catalog.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiHelp"
+  /api/health:
+    get:
+      operationId: getApiHealth
+      summary: Check application liveness
+      description: This endpoint does not verify database connectivity.
+      responses:
+        "200":
+          description: The application process is responding.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                    const: ok
+  /api/openapi.yaml:
+    get:
+      operationId: getOpenApiDocument
+      summary: Download this OpenAPI document
+      responses:
+        "200":
+          description: Importable OpenAPI 3.1 YAML document.
+          content:
+            application/yaml:
+              schema:
+                type: string
+components:
+  schemas:
+    ApiIndex:
+      type: object
+      required:
+        - service
+        - version
+        - baseUrl
+        - apiBasePath
+        - helpUrl
+        - healthUrl
+        - openApiUrl
+      properties:
+        service:
+          type: string
+          example: TataBillForge API
+        version:
+          type: string
+          example: 1.0.0
+        baseUrl:
+          type: string
+          format: uri
+          example: https://partner.tatapower.solar
+        apiBasePath:
+          type: string
+          example: /api
+        helpUrl:
+          type: string
+          format: uri
+          example: https://partner.tatapower.solar/api/help
+        healthUrl:
+          type: string
+          format: uri
+          example: https://partner.tatapower.solar/api/health
+        openApiUrl:
+          type: string
+          format: uri
+          example: https://partner.tatapower.solar/api/openapi.yaml
+    ApiHelp:
+      type: object
+      required:
+        - service
+        - version
+        - baseUrl
+        - documentationUrl
+        - authentication
+        - healthCheck
+        - endpoints
+      properties:
+        service:
+          type: string
+        version:
+          type: string
+        baseUrl:
+          type: string
+          format: uri
+        documentationUrl:
+          type: string
+          format: uri
+        authentication:
+          type: object
+          required:
+            - type
+            - cookieName
+            - loginPath
+            - logoutPath
+          properties:
+            type:
+              type: string
+            cookieName:
+              type: string
+            loginPath:
+              type: string
+            logoutPath:
+              type: string
+        healthCheck:
+          type: object
+          required:
+            - path
+            - description
+          properties:
+            path:
+              type: string
+            description:
+              type: string
+        endpoints:
+          type: array
+          items:
+            type: object
+            required:
+              - method
+              - path
+              - authentication
+              - summary
+            properties:
+              method:
+                type: string
+                enum:
+                  - GET
+                  - POST
+                  - PATCH
+                  - DELETE
+              path:
+                type: string
+              authentication:
+                type: string
+              summary:
+                type: string

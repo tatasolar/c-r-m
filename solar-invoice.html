@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Solar Rooftop Tax Invoice & Admin Portal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--color-primary, #10635a)',
+                        secondary: 'var(--color-secondary, #189f0f)',
+                        'primary-dark': 'var(--color-primary-dark, #0b453e)',
+                        'bg-light': 'var(--color-bg-light, #199f0f14)',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary: #10635a;
+            --color-secondary: #189f0f;
+            --color-primary-dark: #0b453e;
+            --color-bg-light: #199f0f14;
+            --color-text-main: #222222;
+            --color-text-muted: #3a3838;
+            --color-border: #cdcaca;
+        }
+
+        @media print {
+            body {
+                background-color: #ffffff !important;
+                padding: 0 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .invoice-card {
+                box-shadow: none !important;
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none !important;
+            }
+            .print-container {
+                width: 100% !important;
+            }
+        }
+    </style>
+    <!-- User injected custom CSS container -->
+    <style id="userCustomCSS"></style>
+  <script src="./whatsapp-otp.js"></script>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 antialiased h-full flex flex-col transition-colors duration-200">
+
+    <!-- Auth / Login Modal (WhatsApp OTP Verification & Email Registration) -->
+    <div id="authModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="bg-primary text-white p-6 relative">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-secondary p-3 rounded-xl text-white shadow-md">
+                        <i class="fa-solid fa-shield-halved text-2xl"></i>
+                    </div>
+                    <div>
+                            <h2 class="text-xl font-bold">Verify admin access</h2>
+                            <p class="text-xs text-emerald-100">A one-time code will be sent to your WhatsApp.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Steps -->
+            <div class="p-6 space-y-5">
+                <div id="authStep1" class="space-y-4">
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Admin name (optional)</label>
+                        <input type="text" id="regName" autocomplete="name" placeholder="Your name" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2.5 focus:ring-2 focus:ring-primary focus:outline-none">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">WhatsApp Phone Number (for OTP)</label>
+                        <div class="flex space-x-2">
+                            <span class="inline-flex items-center px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300">+91</span>
+                                <input type="tel" id="authWhatsapp" inputmode="numeric" autocomplete="tel-national" maxlength="10" placeholder="10-digit number" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2.5 focus:ring-2 focus:ring-primary focus:outline-none">
+                        </div>
+                    </div>
+
+                        <button id="sendWhatsappOtpButton" onclick="requestWhatsappOtp()" class="w-full bg-secondary hover:bg-emerald-600 text-white font-semibold py-3 rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
+                        <i class="fa-brands fa-whatsapp text-lg"></i>
+                            <span>Send WhatsApp OTP</span>
+                    </button>
+                        <p id="otpStatusMsg" class="text-xs text-center" role="status" aria-live="polite"></p>
+                </div>
+
+                <div id="authStep2" class="space-y-4 hidden">
+                    <div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/50 text-center space-y-1">
+                        <div class="text-secondary text-2xl mb-1"><i class="fa-solid fa-paper-plane"></i></div>
+                        <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200">OTP Sent to WhatsApp</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Please enter the 6-digit code sent to <span id="displayWhatsappNo" class="font-bold text-primary"></span></p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 text-center">6-Digit Verification Code</label>
+                        <input type="text" id="otpInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" class="w-full text-center tracking-[1em] text-xl font-bold border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:outline-none">
+                    </div>
+
+                    <div class="flex justify-between items-center text-xs">
+                        <span id="otpTimer" class="text-slate-500" aria-live="polite"></span>
+                        <button id="resendWhatsappOtpButton" onclick="requestWhatsappOtp()" disabled class="text-secondary font-semibold hover:underline disabled:opacity-50">Resend Code</button>
+                    </div>
+                    <p id="otpVerifyStatusMsg" class="text-xs text-center" role="status" aria-live="polite"></p>
+
+                    <button onclick="verifyWhatsappOtp()" class="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-check-circle"></i>
+                        <span>Verify & Open Admin Portal</span>
+                    </button>
+
+                    <button onclick="backToAuthStep1()" class="w-full text-xs text-slate-500 hover:text-slate-700 py-1">Back to Login</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Navigation Bar -->
+    <header class="no-print bg-slate-900 text-white shadow-md sticky top-0 z-50 px-4 py-3 flex flex-wrap justify-between items-center gap-4 border-b border-slate-800">
+        <div class="flex items-center space-x-3">
+            <div id="headerLogoContainer" class="bg-secondary p-2 rounded-lg text-white flex items-center justify-center w-10 h-10 overflow-hidden shadow">
+                <i id="headerLogoIcon" class="fa-solid fa-solar-panel text-xl"></i>
+                <img id="headerLogoImg" src="" alt="Logo" class="w-full h-full object-contain hidden" onerror="this.classList.add('hidden'); document.getElementById('headerLogoIcon').classList.remove('hidden');">
+            </div>
+            <div>
+                <h1 id="headerPortalTitle" class="text-lg font-bold tracking-tight">Solar Invoice Manager & Admin Portal</h1>
+                <p class="text-xs text-slate-400">Advanced Solar Rooftop Billing & Multi-Vendor Customization Suite</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 flex-wrap">
+            <div id="adminBadge" class="hidden items-center space-x-2 bg-emerald-950 border border-emerald-800 text-emerald-300 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                <img id="navAdminAvatar" src="https://placehold.co/40x40/10635a/ffffff?text=AD" class="w-5 h-5 rounded-full object-cover" alt="Admin">
+                <span id="navAdminName">Admin</span>
+                <button onclick="logoutAdmin()" class="text-red-400 hover:text-red-300 ml-2" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+            <button id="toggleModeBtn" onclick="toggleMode()" class="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg font-medium text-sm transition flex items-center space-x-2 shadow">
+                <i id="modeIcon" class="fa-solid fa-eye"></i>
+                <span id="modeText">Switch to Client View</span>
+            </button>
+            <button onclick="copyShareableLink()" class="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 px-3 py-2 rounded-lg font-medium text-sm transition flex items-center space-x-2">
+                <i class="fa-solid fa-share-nodes text-secondary"></i>
+                <span>Share Link</span>
+            </button>
+            <button onclick="resetToDefaults()" class="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/30 px-3 py-2 rounded-lg font-medium text-sm transition flex items-center space-x-1" title="Reset to default template data">
+                <i class="fa-solid fa-rotate-left"></i>
+            </button>
+            <button onclick="window.print()" class="bg-secondary hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium text-sm transition flex items-center space-x-2 shadow">
+                <i class="fa-solid fa-print"></i>
+                <span>Print / PDF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        <!-- Admin Panel (Sidebar) -->
+        <aside id="adminSidebar" class="no-print w-full lg:w-[460px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col h-[calc(100vh-65px)] overflow-y-auto transition-all duration-300">
+            <div class="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky top-0 z-10 flex justify-between items-center">
+                <h2 class="font-bold text-slate-800 dark:text-slate-100 flex items-center space-x-2">
+                    <i class="fa-solid fa-sliders text-primary"></i>
+                    <span>Admin Control Panel</span>
+                </h2>
+                <div class="flex items-center space-x-2">
+                    <button onclick="toggleAdminTheme()" class="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 p-2 rounded-lg text-xs" title="Toggle Admin Dark/Light Theme">
+                        <i id="adminThemeIcon" class="fa-solid fa-moon"></i>
+                    </button>
+                    <span class="text-xs bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-semibold px-2.5 py-0.5 rounded-full">Live Sync</span>
+                </div>
+            </div>
+
+            <div class="p-5 space-y-6">
+                <!-- Tab Navigation inside Admin Panel -->
+                <div class="flex border-b border-slate-200 dark:border-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-400 overflow-x-auto">
+                    <button onclick="switchTab('company')" id="tabBtn-company" class="px-3 py-2 border-b-2 border-primary text-primary text-center whitespace-nowrap">Company</button>
+                    <button onclick="switchTab('customer')" id="tabBtn-customer" class="px-3 py-2 border-b-2 border-transparent text-center whitespace-nowrap hover:text-slate-900 dark:hover:text-slate-100">Customer</button>
+                    <button onclick="switchTab('items')" id="tabBtn-items" class="px-3 py-2 border-b-2 border-transparent text-center whitespace-nowrap hover:text-slate-900 dark:hover:text-slate-100">Items</button>
+                    <button onclick="switchTab('branding')" id="tabBtn-branding" class="px-3 py-2 border-b-2 border-transparent text-center whitespace-nowrap hover:text-slate-900 dark:hover:text-slate-100">Branding & CSS</button>
+                    <button onclick="switchTab('history')" id="tabBtn-history" class="px-3 py-2 border-b-2 border-transparent text-center whitespace-nowrap hover:text-slate-900 dark:hover:text-slate-100">30-Day History</button>
+                </div>
+
+                <!-- Tab 1: Company Details -->
+                <div id="tabContent-company" class="space-y-4 tab-content">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-primary">Company & Brand Settings</h3>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Company Main Name</label>
+                        <input type="text" id="inp-companyName" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Brand Highlight Suffix</label>
+                        <input type="text" id="inp-brandSuffix" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Subtitle / Partnership Note</label>
+                        <textarea id="inp-companySubtitle" rows="2" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Full Legal Name & Address</label>
+                        <textarea id="inp-companyAddress" rows="3" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">GSTIN</label>
+                            <input type="text" id="inp-gstin" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Phone Number</label>
+                            <input type="text" id="inp-companyPhone" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Customer & Metadata -->
+                <div id="tabContent-customer" class="space-y-4 tab-content hidden">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-primary">Customer Information</h3>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Customer Name</label>
+                        <input type="text" id="inp-custName" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Address Line 1</label>
+                        <input type="text" id="inp-custAddress1" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Address Line 2 (City, State, PIN)</label>
+                        <input type="text" id="inp-custAddress2" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Phone Number</label>
+                        <input type="text" id="inp-custPhone" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none">
+                    </div>
+
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-primary pt-2 border-t border-slate-100 dark:border-slate-800">Invoice Metadata & System Details</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Invoice Number</label>
+                            <input type="text" id="inp-invoiceNo" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Invoice Date</label>
+                            <input type="text" id="inp-invoiceDate" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">System Capacity</label>
+                            <input type="text" id="inp-systemCapacity" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Installation Site</label>
+                            <input type="text" id="inp-installationSite" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Headline System Overview Description</label>
+                        <textarea id="inp-headlineDesc" rows="3" oninput="updateData()" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none"></textarea>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Line Items Management -->
+                <div id="tabContent-items" class="space-y-4 tab-content hidden">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-primary">Bill of Materials / Line Items</h3>
+                        <button onclick="addItem()" class="bg-primary hover:bg-primary-dark text-white text-xs px-2.5 py-1.5 rounded font-medium flex items-center space-x-1">
+                            <i class="fa-solid fa-plus"></i><span>Add Item</span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-500">Edit items below. Totals and taxes will compute instantly.</p>
+                    <div id="adminItemsList" class="space-y-3">
+                        <!-- Dynamically populated via JS -->
+                    </div>
+                </div>
+
+                <!-- Tab 4: Branding, Logos & Custom CSS -->
+                <div id="tabContent-branding" class="space-y-4 tab-content hidden">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-primary">Company Logo & Seal Customization</h3>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Company Logo Image URL (PNG/JPG)</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="inp-logoUrl" oninput="updateData()" placeholder="https://example.com/logo.png" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none">
+                            <label class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 px-3 py-2 rounded-lg text-xs font-medium cursor-pointer flex items-center whitespace-nowrap">
+                                <i class="fa-solid fa-upload mr-1"></i> Upload
+                                <input type="file" accept="image/*" onchange="handleLogoUpload(event)" class="hidden">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Authorized Seal & Signature URL</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="inp-signImage" oninput="updateData()" placeholder="https://example.com/signature.png" class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none">
+                            <label class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 px-3 py-2 rounded-lg text-xs font-medium cursor-pointer flex items-center whitespace-nowrap">
+                                <i class="fa-solid fa-upload mr-1"></i> Upload
+                                <input type="file" accept="image/*" onchange="handleSignUpload(event)" class="hidden">
+                            </label>
+                        </div>
+                    </div>
+
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-primary pt-2 border-t border-slate-100 dark:border-slate-800">Color Palette Customization</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Primary Brand Color</label>
+                            <div class="flex space-x-2">
+                                <input type="color" id="inp-colorPrimary" value="#10635a" oninput="updateColors()" class="w-10 h-9 rounded border border-slate-300 dark:border-slate-700 cursor-pointer">
+                                <input type="text" id="inp-colorPrimaryText" value="#10635a" oninput="updateColors()" class="w-full text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded p-1.5">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Secondary Accent Color</label>
+                            <div class="flex space-x-2">
+                                <input type="color" id="inp-colorSecondary" value="#189f0f" oninput="updateColors()" class="w-10 h-9 rounded border border-slate-300 dark:border-slate-700 cursor-pointer">
+                                <input type="text" id="inp-colorSecondaryText" value="#189f0f" oninput="updateColors()" class="w-full text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded p-1.5">
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-primary pt-2 border-t border-slate-100 dark:border-slate-800">Advanced Custom CSS Styling</h3>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Inject Custom CSS Overrides</label>
+                        <textarea id="inp-customCss" rows="4" oninput="updateColors()" placeholder="/* e.g. .invoice-card { border-radius: 1rem; } */" class="w-full font-mono text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:outline-none"></textarea>
+                    </div>
+
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-primary pt-2 border-t border-slate-100 dark:border-slate-800">Admin Profile Setup</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Admin Profile Photo URL</label>
+                            <input type="text" id="inp-adminAvatar" oninput="updateAdminProfile()" placeholder="https://..." class="w-full text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded p-1.5">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Admin Username</label>
+                            <input type="text" id="inp-adminName" oninput="updateAdminProfile()" placeholder="Admin Name" class="w-full text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded p-1.5">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 5: 30-Day History & Records -->
+                <div id="tabContent-history" class="space-y-4 tab-content hidden">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-primary">Invoice History (30-Day Retention)</h3>
+                        <button onclick="clearHistory()" class="text-red-500 hover:text-red-700 text-xs font-semibold"><i class="fa-solid fa-trash-can"></i> Clear History</button>
+                    </div>
+                    <p class="text-xs text-slate-500">Automatically tracking generated invoices for up to 30 days.</p>
+                    <div id="historyRecordsList" class="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- Live Invoice Preview Main Area -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center items-start print-container">
+            <div class="invoice-card max-w-[850px] w-full bg-white dark:bg-slate-900 rounded-md shadow-lg p-8 sm:p-12 text-[#222222] dark:text-slate-100 border border-slate-200 dark:border-slate-800 transition-colors duration-200">
+                
+                <!-- Invoice Header -->
+                <div class="flex justify-between items-start border-b-2 border-primary pb-5 mb-6">
+                    <div class="flex items-center space-x-4">
+                        <div id="invoiceLogoBox" class="w-16 h-16 flex items-center justify-center overflow-hidden rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex-shrink-0">
+                            <i id="invoiceDefaultLogoIcon" class="fa-solid fa-solar-panel text-3xl text-primary"></i>
+                            <img id="invoiceCustomLogoImg" src="" alt="Logo" class="w-full h-full object-contain hidden" onerror="this.classList.add('hidden'); document.getElementById('invoiceDefaultLogoIcon').classList.remove('hidden');">
+                        </div>
+                        <div>
+                            <div class="text-[26px] font-[800] text-primary tracking-[0.5px] uppercase">
+                                <span id="prev-companyName">TECH GREEN</span> <span id="prev-brandSuffix" class="text-secondary">ENERGY</span>
+                            </div>
+                            <div id="prev-companySubtitle" class="text-[11px] text-slate-600 dark:text-slate-400 mt-1 font-medium"></div>
+                        </div>
+                    </div>
+                    <div class="text-right text-[12px] text-slate-600 dark:text-slate-400 leading-[1.5]" id="prev-companyAddress">
+                        <!-- Company Address rendered here -->
+                    </div>
+                </div>
+
+                <!-- Invoice Title -->
+                <div class="text-center text-[18px] font-bold text-primary tracking-[1px] mb-6 uppercase">INVOICE / BILL OF SUPPLY</div>
+                
+                <!-- Headline System Overview Banner -->
+                <div id="prev-headlineDesc" class="text-center text-[12px] text-slate-700 dark:text-slate-300 mb-6 font-medium bg-bg-light p-3 rounded border border-emerald-200 dark:border-emerald-900/50">
+                    <!-- System Description -->
+                </div>
+
+                <!-- Customer & Metadata Grid -->
+                <div class="grid grid-cols-2 gap-5 mb-6 bg-bg-light p-4 rounded border border-emerald-200/50 dark:border-emerald-900/30">
+                    <div class="info-block">
+                        <h4 class="text-[12px] uppercase text-secondary mb-1.5 font-bold tracking-[0.5px]">Customer Details</h4>
+                        <p class="text-[13px] leading-relaxed"><strong>Name:</strong> <span id="prev-custName"></span></p>
+                        <p class="text-[13px] leading-relaxed"><span id="prev-custAddress1"></span></p>
+                        <p class="text-[13px] leading-relaxed"><span id="prev-custAddress2"></span></p>
+                        <p class="text-[13px] leading-relaxed"><strong>Phone:</strong> <span id="prev-custPhone"></span></p>
+                    </div>
+                    <div class="info-block text-right">
+                        <h4 class="text-[12px] uppercase text-secondary mb-1.5 font-bold tracking-[0.5px]">Invoice Metadata</h4>
+                        <p class="text-[13px] leading-relaxed"><strong>Invoice No:</strong> <span id="prev-invoiceNo"></span></p>
+                        <p class="text-[13px] leading-relaxed"><strong>Date:</strong> <span id="prev-invoiceDate"></span></p>
+                        <p class="text-[13px] leading-relaxed"><strong>System Capacity:</strong> <span id="prev-systemCapacity"></span></p>
+                        <p class="text-[13px] leading-relaxed"><strong>Installation Site:</strong> <span id="prev-installationSite"></span></p>
+                    </div>
+                </div>
+
+                <!-- Line Items Table -->
+                <table class="w-full border-collapse mb-6">
+                    <thead>
+                        <tr>
+                            <th class="bg-primary text-white font-semibold text-left p-2.5 text-[12px] uppercase w-[5%]"></th>
+                            <th class="bg-primary text-white font-semibold text-left p-2.5 text-[12px] uppercase w-[45%]">Item Description (Bill of Materials)</th>
+                            <th class="bg-primary text-white font-semibold text-center p-2.5 text-[12px] uppercase w-[10%]">HSN/SAC</th>
+                            <th class="bg-primary text-white font-semibold text-center p-2.5 text-[12px] uppercase w-[8%]">Qty</th>
+                            <th class="bg-primary text-white font-semibold text-right p-2.5 text-[12px] uppercase w-[16%]">Unit Price (₹)</th>
+                            <th class="bg-primary text-white font-semibold text-right p-2.5 text-[12px] uppercase w-[16%]">Total (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="prev-itemsTableBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+
+                <!-- Summary Container & Totals -->
+                <div class="flex flex-col md:flex-row justify-between items-start mb-8 gap-4">
+                    <div class="payment-info w-full md:w-1/2 text-[12px] leading-[1.6] bg-bg-light p-3 rounded border-l-4 border-secondary">
+                        <strong class="text-primary">Bank Account Details for Payment:</strong><br>
+                        <span id="prev-bankName"></span><br>
+                        <span id="prev-bankAccName"></span><br>
+                        Account No: <span id="prev-bankAccNo"></span><br>
+                        IFSC Code: <span id="prev-bankIfsc"></span><br>
+                        Branch: <span id="prev-bankBranch"></span>
+                    </div>
+                    <table class="totals-table w-full md:w-[45%]">
+                        <tr>
+                            <td class="p-1.5 border-b border-slate-200 dark:border-slate-800">Subtotal:</td>
+                            <td class="text-right p-1.5 border-b border-slate-200 dark:border-slate-800" id="prev-subtotal">₹0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="p-1.5 border-b border-slate-200 dark:border-slate-800" id="prev-cgstLabel">CGST (6%):</td>
+                            <td class="text-right p-1.5 border-b border-slate-200 dark:border-slate-800" id="prev-cgstAmount">₹0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="p-1.5 border-b border-slate-200 dark:border-slate-800" id="prev-sgstLabel">SGST (6%):</td>
+                            <td class="text-right p-1.5 border-b border-slate-200 dark:border-slate-800" id="prev-sgstAmount">₹0.00</td>
+                        </tr>
+                        <tr class="grand-total font-bold text-[15px] text-primary bg-white dark:bg-slate-900">
+                            <td class="p-2 border-t-2 border-primary">Grand Total:</td>
+                            <td class="text-right p-2 border-t-2 border-primary" id="prev-grandTotal">₹0.00</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Footer & Terms -->
+                <div class="border-t border-slate-200 dark:border-slate-800 pt-5 flex flex-col md:flex-row justify-between items-end mt-5 gap-4">
+                    <div class="terms text-[11px] text-slate-600 dark:text-slate-400 w-full md:w-[60%] leading-[1.4]" id="prev-termsContainer">
+                        <strong>Terms & Conditions:</strong><br>
+                        <div id="prev-termsList"></div>
+                    </div>
+                    <div class="signature-box text-center w-full md:w-[30%] flex flex-col items-center justify-end">
+                        <div class="signature-space h-[60px] w-full flex items-end justify-center">
+                            <img id="prev-signImage" src="" alt="Authorized Signatory & Seal" class="block max-h-[60px] max-w-[140px] w-auto h-auto object-contain object-bottom mx-auto" onerror="this.src='https://placehold.co/120x50/f1f5f9/10635a?text=Authorized+Seal'" />
+                        </div>
+                        <div class="signature-label text-[12px] font-semibold border-t border-dashed border-slate-300 dark:border-slate-700 pt-1.5 text-slate-800 dark:text-slate-200 w-full">Authorized Signatory & Seal</div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification Overlay -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <div id="toastIcon" class="text-secondary text-lg"><i class="fa-solid fa-circle-check"></i></div>
+        <div id="toastMessage" class="text-sm font-medium">Link copied to clipboard!</div>
+    </div>
+
+    <script>
+        const defaultData = {
+            companyName: "Tata Power",
+            brandSuffix: "Solar",
+            companySubtitle: "DEMO • SAMPLE ONLY — replace with your registered business details.",
+            companyAddress: "Demo address — replace with registered business address.",
+            gstin: "",
+            companyPhone: "",
+            
+            logoUrl: "https://cdn.phototourl.com/member/2026-10-27-ecf15c31-1d9c-4c74-b833-722b92b3a3ab.gif",
+            signImage: "",
+            colorPrimary: "#10635a",
+            colorSecondary: "#189f0f",
+            customCss: "",
+            
+            adminAvatar: "https://placehold.co/40x40/10635a/ffffff?text=AD",
+            adminName: "Demo Admin",
+
+            custName: "Example Customer",
+            custAddress1: "Demo Street, Example Town",
+            custAddress2: "Replace with customer address",
+            custPhone: "",
+            
+            invoiceNo: "DEMO/2026/001",
+            invoiceDate: "28-Oct-2026",
+            systemCapacity: "5 kW Off-Grid",
+            installationSite: "Domestic Rooftop",
+            headlineDesc: "5 kW (5.04 kW peak) using 450W solar panels, the system requires 11 solar modules connected to a 5 kW / 48V Off-Grid Solar Power Conditioning Unit (PCU) / Inverter along with a 48V 100Ah Lithium LiFePO4 battery storage setup",
+            
+            cgstRate: 6.0,
+            sgstRate: 6.0,
+            
+            bankName: "",
+            bankAccName: "",
+            bankAccNo: "",
+            bankIfsc: "",
+            bankBranch: "",
+            
+            terms: [
+                "All solar panels carry a 25-year performance warranty; Inverter carries a 5-year replacement warranty.",
+                "Payment is due within 5 days of invoice issue date."
+            ],
+            
+            items: [
+                { desc: "Tata Solar PERC modules off-grid mono PERC Modules (450W, 144 Half-Cut Cells)", hsn: "8541", qty: "11", unitPrice: 28500 },
+                { desc: "Tata Power / Approved Off-Grid Solar Inverter/PCU (5kW, 48V MPPT)", hsn: "8504", qty: "1 No", unitPrice: 65000 },
+                { desc: "Battery Bank (48 Nos x 12V 150Ah/200Ah Tubular)", hsn: "8507", qty: "1 No.", unitPrice: 85000 },
+                { desc: "Mounting Structure (Galvanized Iron (GI) High-Rise Module Mounting Structure (11 Panels))", hsn: "7308", qty: "1 Set", unitPrice: 18000 },
+                { desc: "DC Distribution Box (DCDB) with SPD & Fuse (2 In / 2 Out)", hsn: "8178", qty: "1 No", unitPrice: 3800 },
+                { desc: "Solar DC Cable (4 sq.mm / 6 sq.mm Red & Black, Copper - 100m Bundle)", hsn: "8544", qty: "1 Bundle", unitPrice: 8500 },
+                { desc: "AC Copper Armoured Power Cable (3-Core, 10 sq.mm - 30m)", hsn: "8334", qty: "1 No", unitPrice: 5590 },
+                { desc: "Earthing Kit (3 Chemical Gel Electrodes, Earthing Strip, Compound)", hsn: "8535", qty: "3 Sets", unitPrice: 3200 },
+                { desc: "Lightning Arrester (Class-B Copper ESE/Conventional LA Rod + Base)", hsn: "8535", qty: "1 Set", unitPrice: 3500 },
+                { desc: "Installation Accessories & BOS (MC4 Connectors, Conduits, Ties, Fasteners)", hsn: "3917", qty: "1 Lot", unitPrice: 4500 },
+                { desc: "Turnkey Installation, Testing, (Commissioning & Wiring Service)", hsn: "9954", qty: "1 Job", unitPrice: 22000 }
+            ]
+        };
+
+        let currentData = JSON.parse(JSON.stringify(defaultData));
+        let isClientMode = false;
+        let isAuthenticated = false;
+        let pendingWhatsappPhone = "";
+        let otpCountdown = null;
+
+        async function whatsappOtpRequest(action, data) {
+            const response = await fetch(`/api/whatsapp-otp/${action}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+            let payload = {};
+            try {
+                payload = await response.json();
+            } catch {
+                throw new Error("The server returned an unreadable response.");
+            }
+            if (!response.ok) throw new Error(payload.error || `Request failed (${response.status}).`);
+            return payload;
+        }
+
+        function setOtpStatus(elementId, message, isError = false) {
+            const status = document.getElementById(elementId);
+            status.innerText = message;
+            status.className = `text-xs text-center ${isError ? "text-red-600" : "text-emerald-700"}`;
+        }
+
+        function startOtpCountdown(seconds) {
+            if (otpCountdown) clearInterval(otpCountdown);
+            const resendButton = document.getElementById('resendWhatsappOtpButton');
+            const timer = document.getElementById('otpTimer');
+            let remaining = seconds;
+            resendButton.disabled = true;
+            timer.innerText = `Resend available in ${remaining}s`;
+            otpCountdown = setInterval(() => {
+                remaining -= 1;
+                if (remaining <= 0) {
+                    clearInterval(otpCountdown);
+                    otpCountdown = null;
+                    resendButton.disabled = false;
+                    timer.innerText = "You can request another code now.";
+                    return;
+                }
+                timer.innerText = `Resend available in ${remaining}s`;
+            }, 1000);
+        }
+
+        async function requestWhatsappOtp() {
+            const phone = document.getElementById('authWhatsapp').value.trim();
+            const sendButton = document.getElementById('sendWhatsappOtpButton');
+            const resendButton = document.getElementById('resendWhatsappOtpButton');
+            const onVerifyStep = !document.getElementById('authStep2').classList.contains('hidden');
+            const resendWasEnabled = !resendButton.disabled;
+            if (!/^\d{10}$/.test(phone)) {
+                setOtpStatus("otpStatusMsg", "Enter a valid 10-digit WhatsApp number.", true);
+                return;
+            }
+
+            sendButton.disabled = true;
+            resendButton.disabled = true;
+            setOtpStatus("otpStatusMsg", "");
+            setOtpStatus("otpVerifyStatusMsg", "");
+            try {
+                const result = await whatsappOtpRequest("request", { phone });
+                pendingWhatsappPhone = phone;
+                document.getElementById('displayWhatsappNo').innerText = "+91 " + phone;
+                document.getElementById('authStep1').classList.add('hidden');
+                document.getElementById('authStep2').classList.remove('hidden');
+                document.getElementById('otpInput').value = "";
+                setOtpStatus("otpVerifyStatusMsg", "Code sent. Check WhatsApp and enter it here.");
+                startOtpCountdown(result.resendAfterSeconds);
+            } catch (error) {
+                setOtpStatus(onVerifyStep ? "otpVerifyStatusMsg" : "otpStatusMsg", error.message, true);
+                showToast(error.message);
+                resendButton.disabled = !onVerifyStep || !resendWasEnabled;
+            } finally {
+                sendButton.disabled = false;
+            }
+        }
+
+        async function verifyWhatsappOtp() {
+            const code = document.getElementById('otpInput').value.trim();
+            if (!/^\d{6}$/.test(code) || !pendingWhatsappPhone) {
+                setOtpStatus("otpVerifyStatusMsg", "Enter the 6-digit code sent to WhatsApp.", true);
+                return;
+            }
+            const verifyButton = document.querySelector('#authStep2 button[onclick="verifyWhatsappOtp()"]');
+            verifyButton.disabled = true;
+            try {
+                await whatsappOtpRequest("verify", { phone: pendingWhatsappPhone, code });
+                pendingWhatsappPhone = "";
+                if (otpCountdown) clearInterval(otpCountdown);
+                otpCountdown = null;
+                isAuthenticated = true;
+                document.getElementById('authModal').classList.add('hidden');
+                document.getElementById('adminBadge').classList.remove('hidden');
+                document.getElementById('navAdminName').innerText =
+                    document.getElementById('regName').value.trim() || "Admin";
+                showToast("WhatsApp number verified.");
+                saveToHistory();
+            } catch (error) {
+                setOtpStatus("otpVerifyStatusMsg", error.message, true);
+            } finally {
+                verifyButton.disabled = false;
+            }
+        }
+
+        function logoutAdmin() {
+            isAuthenticated = false;
+            pendingWhatsappPhone = "";
+            if (otpCountdown) clearInterval(otpCountdown);
+            otpCountdown = null;
+            document.getElementById('authModal').classList.remove('hidden');
+            document.getElementById('adminBadge').classList.add('hidden');
+            document.getElementById('authStep2').classList.add('hidden');
+            document.getElementById('authStep1').classList.remove('hidden');
+            document.getElementById('otpInput').value = '';
+            document.getElementById('resendWhatsappOtpButton').disabled = true;
+            showToast("Logged out successfully.");
+        }
+
+        function backToAuthStep1() {
+            if (otpCountdown) clearInterval(otpCountdown);
+            otpCountdown = null;
+            document.getElementById('authStep2').classList.add('hidden');
+            document.getElementById('authStep1').classList.remove('hidden');
+        }
+
+        function loadAppData() {
+            try {
+                const hash = window.location.hash;
+                if (hash && hash.length > 1) {
+                    const jsonString = decodeURIComponent(hash.substring(1));
+                    const parsed = JSON.parse(jsonString);
+                    currentData = Object.assign({}, defaultData, parsed);
+                } else {
+                    const saved = localStorage.getItem('solar_invoice_data_advanced');
+                    if (saved) {
+                        currentData = JSON.parse(saved);
+                    }
+                }
+            } catch (e) {
+                console.error("Error loading state:", e);
+                currentData = JSON.parse(JSON.stringify(defaultData));
+            }
+            populateFormInputs();
+            updateColors();
+            renderPreview();
+            renderHistoryRecords();
+        }
+
+        function populateFormInputs() {
+            document.getElementById('inp-companyName').value = currentData.companyName || '';
+            document.getElementById('inp-brandSuffix').value = currentData.brandSuffix || '';
+            document.getElementById('inp-companySubtitle').value = currentData.companySubtitle || '';
+            document.getElementById('inp-companyAddress').value = currentData.companyAddress || '';
+            document.getElementById('inp-gstin').value = currentData.gstin || '';
+            document.getElementById('inp-companyPhone').value = currentData.companyPhone || '';
+
+            document.getElementById('inp-logoUrl').value = currentData.logoUrl || '';
+            document.getElementById('inp-signImage').value = currentData.signImage || '';
+            document.getElementById('inp-colorPrimary').value = currentData.colorPrimary || '#10635a';
+            document.getElementById('inp-colorPrimaryText').value = currentData.colorPrimary || '#10635a';
+            document.getElementById('inp-colorSecondary').value = currentData.colorSecondary || '#189f0f';
+            document.getElementById('inp-colorSecondaryText').value = currentData.colorSecondary || '#189f0f';
+            document.getElementById('inp-customCss').value = currentData.customCss || '';
+
+            document.getElementById('inp-adminAvatar').value = currentData.adminAvatar || '';
+            document.getElementById('inp-adminName').value = currentData.adminName || '';
+
+            document.getElementById('inp-custName').value = currentData.custName || '';
+            document.getElementById('inp-custAddress1').value = currentData.custAddress1 || '';
+            document.getElementById('inp-custAddress2').value = currentData.custAddress2 || '';
+            document.getElementById('inp-custPhone').value = currentData.custPhone || '';
+
+            document.getElementById('inp-invoiceNo').value = currentData.invoiceNo || '';
+            document.getElementById('inp-invoiceDate').value = currentData.invoiceDate || '';
+            document.getElementById('inp-systemCapacity').value = currentData.systemCapacity || '';
+            document.getElementById('inp-installationSite').value = currentData.installationSite || '';
+            document.getElementById('inp-headlineDesc').value = currentData.headlineDesc || '';
+
+            renderAdminItemsList();
+        }
+
+        function updateData() {
+            currentData.companyName = document.getElementById('inp-companyName').value;
+            currentData.brandSuffix = document.getElementById('inp-brandSuffix').value;
+            currentData.companySubtitle = document.getElementById('inp-companySubtitle').value;
+            currentData.companyAddress = document.getElementById('inp-companyAddress').value;
+            currentData.gstin = document.getElementById('inp-gstin').value;
+            currentData.companyPhone = document.getElementById('inp-companyPhone').value;
+
+            currentData.logoUrl = document.getElementById('inp-logoUrl').value;
+            currentData.signImage = document.getElementById('inp-signImage').value;
+            currentData.adminAvatar = document.getElementById('inp-adminAvatar').value;
+            currentData.adminName = document.getElementById('inp-adminName').value;
+
+            currentData.custName = document.getElementById('inp-custName').value;
+            currentData.custAddress1 = document.getElementById('inp-custAddress1').value;
+            currentData.custAddress2 = document.getElementById('inp-custAddress2').value;
+            currentData.custPhone = document.getElementById('inp-custPhone').value;
+
+            currentData.invoiceNo = document.getElementById('inp-invoiceNo').value;
+            currentData.invoiceDate = document.getElementById('inp-invoiceDate').value;
+            currentData.systemCapacity = document.getElementById('inp-systemCapacity').value;
+            currentData.installationSite = document.getElementById('inp-installationSite').value;
+            currentData.headlineDesc = document.getElementById('inp-headlineDesc').value;
+
+            localStorage.setItem('solar_invoice_data_advanced', JSON.stringify(currentData));
+            updateUrlHash();
+            renderPreview();
+        }
+
+        function updateColors() {
+            const primary = document.getElementById('inp-colorPrimary').value;
+            const secondary = document.getElementById('inp-colorSecondary').value;
+            const customCss = document.getElementById('inp-customCss').value;
+
+            document.getElementById('inp-colorPrimaryText').value = primary;
+            document.getElementById('inp-colorSecondaryText').value = secondary;
+
+            currentData.colorPrimary = primary;
+            currentData.colorSecondary = secondary;
+            currentData.customCss = customCss;
+
+            // Compute RGB for hex background light
+            const r = parseInt(secondary.slice(1,3), 16);
+            const g = parseInt(secondary.slice(3,5), 16);
+            const b = parseInt(secondary.slice(5,7), 16);
+            const bgLightVal = `rgba(${r}, ${g}, ${b}, 0.08)`;
+
+            // Inject CSS variables into root
+            const rootStyle = `
+                :root {
+                    --color-primary: ${primary};
+                    --color-secondary: ${secondary};
+                    --color-bg-light: ${bgLightVal};
+                }
+                ${customCss}
+            `;
+            document.getElementById('userCustomCSS').innerHTML = rootStyle;
+
+            localStorage.setItem('solar_invoice_data_advanced', JSON.stringify(currentData));
+            updateUrlHash();
+        }
+
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                if (file.size > 2 * 1024 * 1024) {
+                    showToast("File size exceeds 2MB limit.");
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentData.logoUrl = e.target.result;
+                    document.getElementById('inp-logoUrl').value = e.target.result;
+                    updateData();
+                    renderPreview();
+                    showToast("Logo uploaded and converted successfully!");
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleSignUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                if (file.size > 2 * 1024 * 1024) {
+                    showToast("File size exceeds 2MB limit.");
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentData.signImage = e.target.result;
+                    document.getElementById('inp-signImage').value = e.target.result;
+                    updateData();
+                    renderPreview();
+                    showToast("Seal & Signature uploaded successfully!");
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function updateAdminProfile() {
+            currentData.adminAvatar = document.getElementById('inp-adminAvatar').value;
+            currentData.adminName = document.getElementById('inp-adminName').value;
+            document.getElementById('navAdminAvatar').src = currentData.adminAvatar || 'https://placehold.co/40x40';
+            document.getElementById('navAdminName').innerText = currentData.adminName || 'Admin';
+            updateData();
+        }
+
+        function renderAdminItemsList() {
+            const container = document.getElementById('adminItemsList');
+            container.innerHTML = '';
+            currentData.items.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-lg space-y-2 relative";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Item #${index + 1}</span>
+                        <button onclick="removeItem(${index})" class="text-red-500 hover:text-red-700 text-xs font-semibold px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-950/40">
+                            <i class="fa-solid fa-trash"></i> Remove
+                        </button>
+                    </div>
+                    <div>
+                        <input type="text" placeholder="Item Description" value="${escapeHtml(item.desc)}" oninput="updateItem(${index}, 'desc', this.value)" class="w-full text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-900 rounded p-1.5">
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="text-[10px] text-slate-500">HSN/SAC</label>
+                            <input type="text" placeholder="HSN" value="${escapeHtml(item.hsn)}" oninput="updateItem(${index}, 'hsn', this.value)" class="w-full text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-900 rounded p-1.5">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500">Qty</label>
+                            <input type="text" placeholder="Qty" value="${escapeHtml(item.qty)}" oninput="updateItem(${index}, 'qty', this.value)" class="w-full text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-900 rounded p-1.5">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500">Unit Price (₹)</label>
+                            <input type="number" placeholder="Price" value="${item.unitPrice}" oninput="updateItem(${index}, 'unitPrice', this.value)" class="w-full text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-900 rounded p-1.5">
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateItem(index, field, value) {
+            if (field === 'unitPrice') {
+                currentData.items[index][field] = parseFloat(value) || 0;
+            } else {
+                currentData.items[index][field] = value;
+            }
+            localStorage.setItem('solar_invoice_data_advanced', JSON.stringify(currentData));
+            updateUrlHash();
+            renderPreview();
+        }
+
+        function addItem() {
+            currentData.items.push({ desc: "New Solar Item", hsn: "8541", qty: "1", unitPrice: 1000 });
+            renderAdminItemsList();
+            updateData();
+        }
+
+        function removeItem(index) {
+            currentData.items.splice(index, 1);
+            renderAdminItemsList();
+            updateData();
+        }
+
+        function renderPreview() {
+            document.getElementById('prev-companyName').innerText = currentData.companyName;
+            document.getElementById('prev-brandSuffix').innerText = currentData.brandSuffix;
+            document.getElementById('prev-companySubtitle').innerHTML = currentData.companySubtitle;
+            document.getElementById('prev-companyAddress').innerHTML = currentData.companyAddress;
+            document.getElementById('prev-headlineDesc').innerText = currentData.headlineDesc;
+
+            document.getElementById('prev-custName').innerText = currentData.custName;
+            document.getElementById('prev-custAddress1').innerText = currentData.custAddress1;
+            document.getElementById('prev-custAddress2').innerText = currentData.custAddress2;
+            document.getElementById('prev-custPhone').innerText = currentData.custPhone;
+
+            document.getElementById('prev-invoiceNo').innerText = currentData.invoiceNo;
+            document.getElementById('prev-invoiceDate').innerText = currentData.invoiceDate;
+            document.getElementById('prev-systemCapacity').innerText = currentData.systemCapacity;
+            document.getElementById('prev-installationSite').innerText = currentData.installationSite;
+
+            // Render Logo in Header and Preview
+            const headerLogoImg = document.getElementById('headerLogoImg');
+            const headerLogoIcon = document.getElementById('headerLogoIcon');
+            const invoiceCustomLogoImg = document.getElementById('invoiceCustomLogoImg');
+            const invoiceDefaultLogoIcon = document.getElementById('invoiceDefaultLogoIcon');
+
+            if (currentData.logoUrl) {
+                headerLogoImg.src = currentData.logoUrl;
+                headerLogoImg.classList.remove('hidden');
+                headerLogoIcon.classList.add('hidden');
+
+                invoiceCustomLogoImg.src = currentData.logoUrl;
+                invoiceCustomLogoImg.classList.remove('hidden');
+                invoiceDefaultLogoIcon.classList.add('hidden');
+            } else {
+                headerLogoImg.classList.add('hidden');
+                headerLogoIcon.classList.remove('hidden');
+                invoiceCustomLogoImg.classList.add('hidden');
+                invoiceDefaultLogoIcon.classList.remove('hidden');
+            }
+
+            // Render Items Table
+            const tbody = document.getElementById('prev-itemsTableBody');
+            tbody.innerHTML = '';
+            let subtotal = 0;
+
+            currentData.items.forEach((item, index) => {
+                const qtyNumeric = parseFloat(item.qty) || 1;
+                const total = qtyNumeric * (item.unitPrice || 0);
+                subtotal += total;
+
+                const tr = document.createElement('tr');
+                if (index % 2 === 1) tr.className = 'bg-slate-50/50 dark:bg-slate-800/30';
+                tr.innerHTML = `
+                    <td class="text-center p-2.5 border-b border-slate-200 dark:border-slate-800 text-[13px]">${index + 1}</td>
+                    <td class="p-2.5 border-b border-slate-200 dark:border-slate-800 text-[13px]"><strong>${escapeHtml(item.desc.split(' ')[0])}</strong> ${escapeHtml(item.desc.substring(item.desc.indexOf(' ') + 1))}</td>
+                    <td class="text-center p-2.5 border-b border-slate-200 dark:border-slate-800 text-[13px]">${escapeHtml(item.hsn)}</td>
+                    <td class="text-center p-2.5 border-b border-slate-200 dark:border-slate-800 text-[13px]">${escapeHtml(item.qty)}</td>
+                    <td class="text-right p-2.5 border-b border-slate-200 dark:border-slate-800 text-[13px]">${formatCurrency(item.unitPrice)}</td>
+                    <td class="text-right p-2.5 border-b border-slate-200 dark:border-slate-800 text-[13px]">${formatCurrency(total)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Calculate Taxes & Totals
+            const cgstRate = currentData.cgstRate || 6;
+            const sgstRate = currentData.sgstRate || 6;
+            const cgstAmount = subtotal * (cgstRate / 100);
+            const sgstAmount = subtotal * (sgstRate / 100);
+            const grandTotal = subtotal + cgstAmount + sgstAmount;
+
+            document.getElementById('prev-bankName').innerText = `Bank Name: ${currentData.bankName}`;
+            document.getElementById('prev-bankAccName').innerText = `Account Name: ${currentData.bankAccName}`;
+            document.getElementById('prev-bankAccNo').innerText = currentData.bankAccNo;
+            document.getElementById('prev-bankIfsc').innerText = currentData.bankIfsc;
+            document.getElementById('prev-bankBranch').innerText = currentData.bankBranch;
+
+            document.getElementById('prev-subtotal').innerText = formatCurrency(subtotal);
+            document.getElementById('prev-cgstLabel').innerText = `CGST (${cgstRate}%):`;
+            document.getElementById('prev-cgstAmount').innerText = formatCurrency(cgstAmount);
+            document.getElementById('prev-sgstLabel').innerText = `SGST (${sgstRate}%):`;
+            document.getElementById('prev-sgstAmount').innerText = formatCurrency(sgstAmount);
+            document.getElementById('prev-grandTotal').innerText = formatCurrency(grandTotal);
+
+            // Render Terms
+            const termsListDiv = document.getElementById('prev-termsList');
+            termsListDiv.innerHTML = '';
+            (currentData.terms || []).forEach((term, idx) => {
+                const p = document.createElement('div');
+                p.innerText = `${idx + 1}. ${term}`;
+                termsListDiv.appendChild(p);
+            });
+
+            // Sign image
+            document.getElementById('prev-signImage').src = currentData.signImage;
+        }
+
+        function saveToHistory() {
+            let history = [];
+            try {
+                const saved = localStorage.getItem('solar_invoice_history_30days');
+                if (saved) history = JSON.parse(saved);
+            } catch(e) { history = []; }
+
+            // Calculate grand total
+            let subtotal = 0;
+            currentData.items.forEach(i => subtotal += (parseFloat(i.qty) || 1) * (i.unitPrice || 0));
+            const grandTotal = subtotal * 1.12;
+
+            const record = {
+                id: currentData.invoiceNo,
+                date: currentData.invoiceDate || new Date().toLocaleDateString(),
+                customer: currentData.custName,
+                total: formatCurrency(grandTotal),
+                timestamp: Date.now(),
+                data: JSON.parse(JSON.stringify(currentData))
+            };
+
+            // Remove duplicate if same invoice number exists
+            history = history.filter(h => h.id !== record.id);
+            history.unshift(record);
+
+            // Filter out records older than 30 days
+            const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+            history = history.filter(h => h.timestamp > thirtyDaysAgo);
+
+            localStorage.setItem('solar_invoice_history_30days', JSON.stringify(history));
+            renderHistoryRecords();
+        }
+
+        function renderHistoryRecords() {
+            const listContainer = document.getElementById('historyRecordsList');
+            if (!listContainer) return;
+            listContainer.innerHTML = '';
+
+            let history = [];
+            try {
+                const saved = localStorage.getItem('solar_invoice_history_30days');
+                if (saved) history = JSON.parse(saved);
+            } catch(e) { history = []; }
+
+            if (history.length === 0) {
+                listContainer.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No recent history records within 30 days.</p>';
+                return;
+            }
+
+            history.forEach(rec => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs";
+                div.innerHTML = `
+                    <div>
+                        <div class="font-bold text-primary">${escapeHtml(rec.id)} - ${escapeHtml(rec.customer)}</div>
+                        <div class="text-slate-500 dark:text-slate-400">Date: ${rec.date} | Total: <strong>${rec.total}</strong></div>
+                    </div>
+                    <div class="flex space-x-1">
+                        <button onclick='loadHistoryRecord(${JSON.stringify(rec.id)})' class="bg-primary text-white px-2 py-1 rounded font-medium hover:bg-primary-dark">Load</button>
+                    </div>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        function loadHistoryRecord(id) {
+            try {
+                const saved = localStorage.getItem('solar_invoice_history_30days');
+                if (saved) {
+                    const history = JSON.parse(saved);
+                    const found = history.find(h => h.id === id);
+                    if (found) {
+                        currentData = found.data;
+                        populateFormInputs();
+                        updateColors();
+                        renderPreview();
+                        showToast(`Loaded invoice ${id} from history.`);
+                    }
+                }
+            } catch(e) {
+                showToast("Failed to load history record.");
+            }
+        }
+
+        function clearHistory() {
+            if (confirm("Clear all history records from the last 30 days?")) {
+                localStorage.removeItem('solar_invoice_history_30days');
+                renderHistoryRecords();
+                showToast("History cleared.");
+            }
+        }
+
+        function formatCurrency(amount) {
+            return '₹' + amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function toggleMode() {
+            isClientMode = !isClientMode;
+            const sidebar = document.getElementById('adminSidebar');
+            const modeIcon = document.getElementById('modeIcon');
+            const modeText = document.getElementById('modeText');
+
+            if (isClientMode) {
+                sidebar.classList.add('hidden');
+                modeIcon.className = "fa-solid fa-sliders";
+                modeText.innerText = "Switch to Admin Editor";
+                showToast("Switched to Clean Client View");
+            } else {
+                sidebar.classList.remove('hidden');
+                modeIcon.className = "fa-solid fa-eye";
+                modeText.innerText = "Switch to Client View";
+                showToast("Switched to Admin Mode");
+            }
+        }
+
+        function toggleAdminTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('adminThemeIcon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.className = "fa-solid fa-moon";
+                showToast("Switched Admin Light Mode");
+            } else {
+                html.classList.add('dark');
+                icon.className = "fa-solid fa-sun";
+                showToast("Switched Admin Dark Mode");
+            }
+        }
+
+        function switchTab(tabName) {
+            ['company', 'customer', 'items', 'branding', 'history'].forEach(t => {
+                document.getElementById(`tabContent-${t}`).classList.add('hidden');
+                document.getElementById(`tabBtn-${t}`).className = "px-3 py-2 border-b-2 border-transparent text-center whitespace-nowrap hover:text-slate-900 dark:hover:text-slate-100";
+            });
+            document.getElementById(`tabContent-${tabName}`).classList.remove('hidden');
+            document.getElementById(`tabBtn-${tabName}`).className = "px-3 py-2 border-b-2 border-primary text-primary text-center font-bold whitespace-nowrap";
+        }
+
+        function updateUrlHash() {
+            try {
+                const jsonStr = JSON.stringify(currentData);
+                const encoded = encodeURIComponent(jsonStr);
+                history.replaceState(null, '', '#' + encoded);
+            } catch (e) {
+                console.error("Failed to update URL hash", e);
+            }
+        }
+
+        function copyShareableLink() {
+            updateUrlHash();
+            const url = window.location.href;
+            const dummy = document.createElement('textarea');
+            document.body.appendChild(dummy);
+            dummy.value = url;
+            dummy.select();
+            try {
+                document.execCommand('copy');
+                showToast("Shareable link copied to clipboard!");
+            } catch (err) {
+                prompt("Copy shareable invoice link:", url);
+            }
+            document.body.removeChild(dummy);
+        }
+
+        function resetToDefaults() {
+            if (confirm("Are you sure you want to reset all invoice fields to default template values?")) {
+                currentData = JSON.parse(JSON.stringify(defaultData));
+                localStorage.removeItem('solar_invoice_data_advanced');
+                window.location.hash = '';
+                populateFormInputs();
+                updateColors();
+                renderPreview();
+                showToast("Reset to default invoice successfully.");
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+
+        window.onload = function() {
+            loadAppData();
+        };
+    </script>
+</body>
+</html>
